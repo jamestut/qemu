@@ -143,6 +143,7 @@ struct GtkDisplayState {
     GtkWidget *zoom_fit_item;
     GtkWidget *grab_item;
     GtkWidget *grab_on_hover_item;
+    GtkWidget *update_on_resize_item;
 
     int nb_vcs;
     VirtualConsole vc[MAX_VCS];
@@ -726,12 +727,15 @@ static gboolean gd_window_close(GtkWidget *widget, GdkEvent *event,
 
 static void gd_set_ui_info(VirtualConsole *vc, gint width, gint height)
 {
+    GtkDisplayState *s = vc->s;
     QemuUIInfo info;
 
-    memset(&info, 0, sizeof(info));
-    info.width = width;
-    info.height = height;
-    dpy_set_ui_info(vc->gfx.dcl.con, &info);
+    if (gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(s->update_on_resize_item))) {
+        memset(&info, 0, sizeof(info));
+        info.width = width;
+        info.height = height;
+        dpy_set_ui_info(vc->gfx.dcl.con, &info);
+    }
 }
 
 #if defined(CONFIG_OPENGL)
@@ -2166,6 +2170,12 @@ static GtkWidget *gd_create_menu_view(GtkDisplayState *s)
                             HOTKEY_MODIFIERS);
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->grab_item);
 
+    separator = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), separator);
+
+    s->update_on_resize_item = gtk_check_menu_item_new_with_mnemonic(_("Update Guest Resolution On Resize"));
+    gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), s->update_on_resize_item);
+    
     separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(view_menu), separator);
 
