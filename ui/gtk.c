@@ -757,6 +757,7 @@ static void gd_resize_event(GtkGLArea *area,
     VirtualConsole *vc = (void *)opaque;
 
     gd_set_ui_info(vc, width, height);
+    gd_gl_area_size_update(vc, width, height);
 }
 
 #endif

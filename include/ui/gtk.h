@@ -125,6 +125,7 @@ int gd_egl_make_current(DisplayChangeListener *dcl,
 /* ui/gtk-gl-area.c */
 void gd_gl_area_init(VirtualConsole *vc);
 void gd_gl_area_draw(VirtualConsole *vc);
+void gd_gl_area_size_update(VirtualConsole *vc, int w, int h);
 void gd_gl_area_update(DisplayChangeListener *dcl,
                        int x, int y, int w, int h);
 void gd_gl_area_refresh(DisplayChangeListener *dcl);

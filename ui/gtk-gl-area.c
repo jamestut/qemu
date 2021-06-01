@@ -17,6 +17,8 @@
 
 #include "sysemu/sysemu.h"
 
+static int ww, wh, fbw, fbh, off_x, off_y;
+
 static void gtk_gl_area_set_scanout_mode(VirtualConsole *vc, bool scanout)
 {
     if (vc->gfx.scanout_mode == scanout) {
@@ -37,15 +39,13 @@ static void gtk_gl_area_set_scanout_mode(VirtualConsole *vc, bool scanout)
 
 void gd_gl_area_draw(VirtualConsole *vc)
 {
-    int ww, wh, y1, y2;
+    int y1, y2;
 
     if (!vc->gfx.gls) {
         return;
     }
 
     gtk_gl_area_make_current(GTK_GL_AREA(vc->gfx.drawing_area));
-    ww = gtk_widget_get_allocated_width(vc->gfx.drawing_area);
-    wh = gtk_widget_get_allocated_height(vc->gfx.drawing_area);
 
     if (vc->gfx.scanout_mode) {
         if (!vc->gfx.guest_fb.framebuffer) {
@@ -55,11 +55,12 @@ void gd_gl_area_draw(VirtualConsole *vc)
         glBindFramebuffer(GL_READ_FRAMEBUFFER, vc->gfx.guest_fb.framebuffer);
         /* GtkGLArea sets GL_DRAW_FRAMEBUFFER for us */
 
-        glViewport(0, 0, ww, wh);
+        glViewport(off_x, off_y, fbw, fbh);
         y1 = vc->gfx.y0_top ? 0 : vc->gfx.h;
         y2 = vc->gfx.y0_top ? vc->gfx.h : 0;
         glBlitFramebuffer(0, y1, vc->gfx.w, y2,
-                          0, 0, ww, wh,
+                          off_x, off_y,
+                          off_x + fbw, off_y + fbh,
                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
     } else {
         if (!vc->gfx.ds) {
@@ -73,6 +74,23 @@ void gd_gl_area_draw(VirtualConsole *vc)
 
     glFlush();
     graphic_hw_gl_flushed(vc->gfx.dcl.con);
+}
+
+void gd_gl_area_size_update(VirtualConsole *vc, int w, int h)
+{
+    double scale;
+    ww = w;
+    wh = h;
+    scale = MIN((double)ww / vc->gfx.w, (double)wh / vc->gfx.h);
+    fbw = vc->gfx.w * scale;
+    fbh = vc->gfx.h * scale;
+    if (ww > fbw) {
+        off_x = (ww - fbw) / 2;
+        off_y = 0;
+    } else {
+        off_x = 0;
+        off_y = (wh - fbh) / 2;
+    }
 }
 
 void gd_gl_area_update(DisplayChangeListener *dcl,
@@ -237,6 +255,9 @@ void gd_gl_area_scanout_dmabuf(DisplayChangeListener *dcl,
 void gtk_gl_area_init(void)
 {
     display_opengl = 1;
+
+    ww = wh = 1;
+    off_x = off_y = 0;
 }
 
 int gd_gl_area_make_current(DisplayChangeListener *dcl,
