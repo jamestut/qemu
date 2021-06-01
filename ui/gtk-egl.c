@@ -63,6 +63,7 @@ void gd_egl_draw(VirtualConsole *vc)
 {
     GdkWindow *window;
     int ww, wh, wsf;
+    double scale;
 
     if (!vc->gfx.gls) {
         return;
@@ -76,8 +77,9 @@ void gd_egl_draw(VirtualConsole *vc)
     if (vc->gfx.scanout_mode) {
         gd_egl_scanout_flush(&vc->gfx.dcl, 0, 0, vc->gfx.w, vc->gfx.h);
 
-        vc->gfx.scale_x = (double)ww / vc->gfx.w;
-        vc->gfx.scale_y = (double)wh / vc->gfx.h;
+        scale = MIN((double)ww / vc->gfx.w, (double)wh / vc->gfx.h);
+        vc->gfx.scale_x = scale;
+        vc->gfx.scale_y = scale;
     } else {
         if (!vc->gfx.ds) {
             return;
@@ -263,7 +265,8 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
 {
     VirtualConsole *vc = container_of(dcl, VirtualConsole, gfx.dcl);
     GdkWindow *window;
-    int ww, wh;
+    int ww, wh, wsf;
+    int fbw, fbh;
 
     if (!vc->gfx.scanout_mode) {
         return;
@@ -276,9 +279,18 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
                    vc->gfx.esurface, vc->gfx.ectx);
 
     window = gtk_widget_get_window(vc->gfx.drawing_area);
-    ww = gdk_window_get_width(window);
-    wh = gdk_window_get_height(window);
-    egl_fb_setup_default(&vc->gfx.win_fb, ww, wh);
+    wsf = gdk_window_get_scale_factor(window);
+    ww = gdk_window_get_width(window) * wsf;
+    wh = gdk_window_get_height(window) * wsf;
+    fbw = wsf * vc->gfx.guest_fb.width * vc->gfx.scale_x;
+    fbh = wsf * vc->gfx.guest_fb.height * vc->gfx.scale_y;
+    egl_fb_setup_default(&vc->gfx.win_fb, fbw, fbh);
+    if (ww > fbw) {
+        vc->gfx.win_fb.offset_x = (ww - fbw) / 2;
+    } else {
+        vc->gfx.win_fb.offset_y = (wh - fbh) / 2;
+    }
+    
     if (vc->gfx.cursor_fb.texture) {
         egl_texture_blit(vc->gfx.gls, &vc->gfx.win_fb, &vc->gfx.guest_fb,
                          vc->gfx.y0_top);
@@ -287,6 +299,8 @@ void gd_egl_scanout_flush(DisplayChangeListener *dcl,
                           vc->gfx.cursor_x, vc->gfx.cursor_y,
                           vc->gfx.scale_x, vc->gfx.scale_y);
     } else {
+        /* will enable this on later patches */
+        /* egl_fb_clear(&vc->gfx.win_fb); */
         egl_fb_blit(&vc->gfx.win_fb, &vc->gfx.guest_fb, !vc->gfx.y0_top);
     }
 

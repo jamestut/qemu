@@ -16,6 +16,8 @@ extern DisplayGLMode qemu_egl_mode;
 typedef struct egl_fb {
     int width;
     int height;
+    int offset_x;
+    int offset_y;
     GLuint texture;
     GLuint framebuffer;
     bool delete_texture;
@@ -27,6 +29,7 @@ void egl_fb_setup_for_tex(egl_fb *fb, int width, int height,
                           GLuint texture, bool delete);
 void egl_fb_setup_new_tex(egl_fb *fb, int width, int height);
 void egl_fb_blit(egl_fb *dst, egl_fb *src, bool flip);
+void egl_fb_clear(egl_fb *dst);
 void egl_fb_read(DisplaySurface *dst, egl_fb *src);
 
 void egl_texture_blit(QemuGLShader *gls, egl_fb *dst, egl_fb *src, bool flip);

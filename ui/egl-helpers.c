@@ -47,6 +47,8 @@ void egl_fb_destroy(egl_fb *fb)
 
     fb->width = 0;
     fb->height = 0;
+    fb->offset_x = 0;
+    fb->offset_y = 0;
     fb->texture = 0;
     fb->framebuffer = 0;
 }
@@ -55,6 +57,8 @@ void egl_fb_setup_default(egl_fb *fb, int width, int height)
 {
     fb->width = width;
     fb->height = height;
+    fb->offset_x = 0;
+    fb->offset_y = 0;
     fb->framebuffer = 0; /* default framebuffer */
 }
 
@@ -65,6 +69,8 @@ void egl_fb_setup_for_tex(egl_fb *fb, int width, int height,
 
     fb->width = width;
     fb->height = height;
+    fb->offset_x = 0;
+    fb->offset_y = 0;
     fb->texture = texture;
     fb->delete_texture = delete;
     if (!fb->framebuffer) {
@@ -94,12 +100,20 @@ void egl_fb_blit(egl_fb *dst, egl_fb *src, bool flip)
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, src->framebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst->framebuffer);
-    glViewport(0, 0, dst->width, dst->height);
+    glViewport(dst->offset_x, dst->offset_y,
+               dst->width + dst->offset_x, dst->height + dst->offset_y);
     y1 = flip ? src->height : 0;
     y2 = flip ? 0 : src->height;
     glBlitFramebuffer(0, y1, src->width, y2,
-                      0, 0, dst->width, dst->height,
+                      dst->offset_x, dst->offset_y,
+                      dst->width + dst->offset_x, dst->height + dst->offset_y,
                       GL_COLOR_BUFFER_BIT, GL_LINEAR);
+}
+
+void egl_fb_clear(egl_fb *dst)
+{
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst->framebuffer);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void egl_fb_read(DisplaySurface *dst, egl_fb *src)
