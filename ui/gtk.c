@@ -279,8 +279,10 @@ static void gd_update_caption(GtkDisplayState *s)
         prefix = g_strdup_printf("QEMU");
     }
 
-    if (s->ptr_owner != NULL &&
-        s->ptr_owner->window == NULL) {
+    if ((s->ptr_owner != NULL &&
+         s->ptr_owner->window == NULL) ||
+        (s->kbd_owner != NULL &&
+         s->kbd_owner->window == NULL)) {
         grab = _(" - Press Ctrl+Alt+G to release grab");
     }
 
@@ -1527,6 +1529,11 @@ static void gd_grab_pointer(VirtualConsole *vc, const char *reason)
 {
     GdkDisplay *display = gtk_widget_get_display(vc->gfx.drawing_area);
 
+    // grabbing pointer for Wayland doesn't work properly for now
+    if (GDK_IS_WAYLAND_DISPLAY(display)) {
+        return;
+    }
+
     if (vc->s->ptr_owner) {
         if (vc->s->ptr_owner == vc) {
             return;
@@ -1554,6 +1561,12 @@ static void gd_ungrab_pointer(GtkDisplayState *s)
     s->ptr_owner = NULL;
 
     display = gtk_widget_get_display(vc->gfx.drawing_area);
+
+    // grabbing pointer for Wayland doesn't work properly for now
+    if (GDK_IS_WAYLAND_DISPLAY(display)) {
+        return;
+    }
+
     gd_grab_update(vc, vc->s->kbd_owner == vc, false);
     gdk_device_warp(gd_get_pointer(display),
                     gtk_widget_get_screen(vc->gfx.drawing_area),
