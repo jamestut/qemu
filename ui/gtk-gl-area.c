@@ -83,7 +83,7 @@ void gd_gl_area_size_update(VirtualConsole *vc, int w, int h)
     ww = w;
     wh = h;
     wsf = gtk_widget_get_scale_factor(vc->gfx.drawing_area);
-    scale = MIN((double)ww / vc->gfx.w, (double)wh / vc->gfx.h);
+    scale = MIN((double)ww / surface_width(vc->gfx.ds), (double)wh / surface_height(vc->gfx.ds));
     vc->gfx.scale_x = scale / wsf;
     vc->gfx.scale_y = scale / wsf;
     fbw = vc->gfx.w * scale;
